@@ -1,0 +1,37 @@
+{
+  "source_name": "rcsb_local_pose_ensemble",
+  "substitutions": [
+    "interaction_score <- mol_pred_energy (no docking score in table)",
+    "structure_confidence <- fraction of QC checks passed (no tool confidence in table)",
+    "mean_AEE/std_AEE are within-structure mean/std of the score column, not real AEE output."
+  ],
+  "qc_columns_used": [
+    "sanitization",
+    "inchi_convertible",
+    "all_atoms_connected",
+    "no_radicals",
+    "bond_lengths",
+    "bond_angles",
+    "internal_steric_clash",
+    "aromatic_ring_flatness",
+    "non-aromatic_ring_non-flatness",
+    "double_bond_flatness",
+    "internal_energy",
+    "minimum_distance_to_protein",
+    "volume_overlap_with_protein"
+  ],
+  "n_rows": 2520,
+  "n_structures": 84,
+  "n_candidates": 84,
+  "n_failed_rows": 80,
+  "label_counts": {
+    "Fail": 1332,
+    "Review": 665,
+    "Pass": 443,
+    "<NA>": 80
+  },
+  "rmsd_thresholds": {
+    "pass<=": 2.0,
+    "review<=": 4.0
+  }
+}
