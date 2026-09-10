@@ -1,0 +1,5 @@
+-r requirements.txt
+# only needed to GENERATE physical-validity features from pose files.
+# If you download a table that already has them, you do not need this.
+posebusters>=0.6
+rdkit>=2023.9

@@ -1,0 +1,35 @@
+# Versioned reliability thresholds.
+# OPERATIONAL starting points for software testing, NOT validated biological
+# cut-offs. Every scored record stores the threshold_version it was decided under.
+threshold_version: v1
+effective_date: "2026-01-01"
+calibration_status: uncalibrated
+approved_by: scoring-owner
+
+rules:
+  structure_coverage:
+    direction: higher_better
+    pass_at_or_above: 0.90
+    fail_below: 0.70
+  structure_confidence:
+    direction: higher_better
+    pass_at_or_above: 0.80
+    fail_below: 0.60
+  std_AEE:
+    direction: lower_better
+    # distribution-based: percentiles are computed on the TRAIN split only
+    pass_at_or_below_percentile: 75
+    fail_above_percentile: 95
+  clash_count:
+    direction: lower_better
+    pass_at_or_below: 0
+    fail_above: 5
+  missing_interface_residues:
+    direction: lower_better
+    pass_at_or_below: 0
+    fail_above: 0
+
+# Gate applied by the pipeline condition step before a model may be registered.
+registration_gate:
+  max_false_pass_rate: 0.15
+  min_macro_f1: 0.55

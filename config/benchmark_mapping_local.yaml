@@ -1,0 +1,46 @@
+# Mapping for the RCSB-built local benchmark (scripts/build_local_benchmark.py).
+# Column names verified against a real `bust --full-report` run.
+source_name: rcsb_local_pose_ensemble
+source_url: https://files.rcsb.org
+license_note: "PDB entries are in the public domain. PoseBusters is MIT."
+
+input_table: data/benchmark_raw.csv
+
+columns:
+  group: pdb_id
+  pose: pose_id
+  rmsd: rmsd
+  candidate: pdb_id
+  method: null
+  score: null
+  score_direction: lower_better
+  confidence: null
+  artifact_ref: file
+  clash_count: num_pairwise_clashes_protein
+  energy_ratio: energy_ratio
+  fallback_score: mol_pred_energy
+  shortest_noncov: shortest_noncovalent_relative_distance
+  min_distance_to_protein: null
+
+qc_boolean_columns:
+  - sanitization
+  - inchi_convertible
+  - all_atoms_connected
+  - no_radicals
+  - bond_lengths
+  - bond_angles
+  - internal_steric_clash
+  - aromatic_ring_flatness
+  - non-aromatic_ring_non-flatness
+  - double_bond_flatness
+  - internal_energy
+  - minimum_distance_to_protein
+  - volume_overlap_with_protein
+
+label_rules:
+  pass_at_or_below_rmsd: 2.0
+  review_at_or_below_rmsd: 4.0
+  label_source: benchmark
+  label_confidence: 1.0
+
+proxy_note: "mean_AEE/std_AEE are within-structure mean/std of the score column, not real AEE output."

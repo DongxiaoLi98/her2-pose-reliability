@@ -1,0 +1,65 @@
+# Maps a downloaded public benchmark table onto the pose-level contract.
+#
+# WORKFLOW
+#   1. Download the benchmark table (see docs).
+#   2. Run:  python -m scripts.inspect_dataset data/benchmark_raw.csv
+#   3. Edit the `columns` block below so every value matches a real column name.
+#      Set a value to `null` if your table does not have it -- the loader will
+#      derive a substitute and record that it did so.
+#   4. Run:  python run_benchmark.py
+
+source_name: posebusters_full_report
+source_url: https://zenodo.org/records/8278563
+license_note: "CC-BY 4.0. Cite Buttenschoen, Morris & Deane, Chem. Sci. 2024."
+
+input_table: data/benchmark_raw.csv
+
+columns:
+  # --- required -------------------------------------------------------------
+  group: pdb_id            # -> structure_id, the GROUP KEY for splitting
+  pose: file               # -> pose_id  (must be unique within a group)
+  rmsd: rmsd               # -> used only to derive the label, never a feature
+
+  # --- optional; set to null if absent -------------------------------------
+  candidate: ligand_id     # -> candidate_id; falls back to `group` if null
+  method: method           # -> confidence_source; falls back to source_name
+  score: null              # docking score; falls back to `mol_pred_energy`
+  score_direction: lower_better
+  confidence: null         # falls back to the fraction of QC checks passed
+  artifact_ref: file       # -> tool_output_ref
+
+  # --- PoseBusters full-report numeric columns -----------------------------
+  clash_count: number_clashes
+  energy_ratio: energy_ratio
+  fallback_score: mol_pred_energy
+  shortest_noncov: shortest_noncovalent_relative_distance
+  min_distance_to_protein: null       # present only when a protein was supplied
+
+# Boolean QC columns whose pass-fraction becomes structure_coverage and, when
+# `confidence` is null, structure_confidence. Missing names are skipped.
+qc_boolean_columns:
+  - sanitization
+  - inchi_convertible
+  - all_atoms_connected
+  - no_radicals
+  - bond_lengths
+  - bond_angles
+  - internal_steric_clash
+  - aromatic_ring_flatness
+  - non-aromatic_ring_non-flatness
+  - double_bond_flatness
+  - internal_energy
+
+# Label rule. Follows the reference literature: RMSD to the crystal pose.
+# 2 A is the community convention for "correct"; 4 A is the threshold used by
+# the pose-filter papers to separate native-like from decoy.
+label_rules:
+  pass_at_or_below_rmsd: 2.0
+  review_at_or_below_rmsd: 4.0
+  label_source: benchmark
+  label_confidence: 1.0
+
+# mean_AEE / std_AEE do not exist in public data. We substitute the within-group
+# mean and standard deviation of the score. This is a documented PROXY and must
+# be described as such in any write-up.
+proxy_note: "mean_AEE/std_AEE are within-structure mean/std of the score column, not real AEE output."

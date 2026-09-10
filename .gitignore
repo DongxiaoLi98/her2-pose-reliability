@@ -1,0 +1,15 @@
+# data and generated artifacts
+data/
+artifacts/
+*.tar.gz
+*.joblib
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+*.bak
+
+# macOS
+.DS_Store

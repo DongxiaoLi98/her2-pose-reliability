@@ -1,0 +1,4 @@
+-r requirements.txt
+sagemaker>=3,<4
+s3fs>=2024.2.0
+mlflow>=2.13
