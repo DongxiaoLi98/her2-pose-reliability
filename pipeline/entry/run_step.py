@@ -26,6 +26,15 @@ OUT = f"{BASE}/output"
 
 sys.path.insert(0, CODE)
 
+# The stock sklearn container does not ship PyYAML, which the threshold config
+# needs. Install it here rather than baking a custom image for one dependency.
+try:
+    import yaml  # noqa: F401
+except ImportError:  # pragma: no cover
+    import subprocess
+
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "pyyaml"])
+
 
 def _first_file(d: str, suffix: str = "") -> str:
     names = sorted(n for n in os.listdir(d) if n.endswith(suffix) and not n.startswith("."))
