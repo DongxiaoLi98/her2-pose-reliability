@@ -1,0 +1,64 @@
+{
+  "dataset_source": "rcsb_local_pose_ensemble",
+  "substitutions_made": [
+    "interaction_score <- mol_pred_energy (no docking score in table)",
+    "structure_confidence <- fraction of QC checks passed (no tool confidence in table)",
+    "mean_AEE/std_AEE are within-structure mean/std of the score column, not real AEE output."
+  ],
+  "environment": {
+    "python": "3.12.7",
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "scikit_learn": "1.9.0",
+    "seed": 0
+  },
+  "rows_total": 2520,
+  "rows_scorable": 2440,
+  "rows_blocked": 80,
+  "blocked_breakdown": {
+    "needs_rerun": 80
+  },
+  "n_classes": 3,
+  "classes": [
+    "Pass",
+    "Review",
+    "Fail"
+  ],
+  "train_rows": 1810,
+  "train_structures": 63,
+  "test_rows": 630,
+  "test_structures": 21,
+  "split": "leave-structures-out holdout; GroupKFold by structure_id inside train",
+  "models_compared": [
+    "rule_baseline",
+    "logistic_regression",
+    "svm",
+    "gradient_boosting"
+  ],
+  "selected_model": "logistic_regression",
+  "selection_rule": "lowest WORST-FOLD cross-validated false_pass_rate, macro_f1 as tie-break",
+  "cut_points_locked_on": "out-of-fold predictions, scored by worst fold",
+  "pass_cut": 0.5600000000000003,
+  "fail_cut": 0.5499999999999999,
+  "heldout_model_false_pass_rate": 0.010067114093959731,
+  "heldout_baseline_false_pass_rate": 0.0,
+  "cv_pooled_false_pass_rate": 0.014506769825918761,
+  "cv_worst_fold_false_pass_rate": 0.024,
+  "cv_to_heldout_gap_false_pass_rate": -0.01393288590604027,
+  "heldout_model_pass_yield": 0.16825396825396827,
+  "heldout_baseline_pass_yield": 0.05873015873015873,
+  "heldout_model_pass_recall": 0.6850393700787402,
+  "heldout_baseline_pass_recall": 0.28346456692913385,
+  "heldout_model_review_rate": 0.3634920634920635,
+  "heldout_baseline_review_rate": 0.13333333333333333,
+  "beats_baseline_on_primary_metric": false,
+  "safer_than_baseline": false,
+  "more_productive_than_baseline": true,
+  "heldout_model_macro_f1": 0.6786408269869734,
+  "heldout_baseline_macro_f1": 0.45990116092874445,
+  "delta_false_pass_rate": -0.010067114093959731,
+  "delta_macro_f1": 0.21873966605822892,
+  "inference_rows": 630,
+  "inference_ms_per_row": 0.0042,
+  "inference_cpu_count": 11
+}

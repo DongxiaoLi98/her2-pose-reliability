@@ -1,0 +1,73 @@
+{
+  "evaluation_result": {
+    "model_name": "logistic_regression",
+    "threshold_version": "v1",
+    "held_out_structures": 21,
+    "held_out_rows": 630,
+    "model": {
+      "false_pass_rate": 0.010067114093959731,
+      "false_fail_rate": 0.023622047244094488,
+      "pass_yield": 0.16825396825396827,
+      "pass_recall": 0.6850393700787402,
+      "review_rate": 0.3634920634920635,
+      "macro_f1": 0.6786408269869734,
+      "n": 630,
+      "confusion_matrix": [
+        [
+          87,
+          37,
+          3
+        ],
+        [
+          16,
+          118,
+          71
+        ],
+        [
+          3,
+          74,
+          221
+        ]
+      ],
+      "confusion_matrix_labels": [
+        "Pass",
+        "Review",
+        "Fail"
+      ],
+      "brier": 0.423647085544051
+    },
+    "rule_baseline": {
+      "false_pass_rate": 0.0,
+      "false_fail_rate": 0.33858267716535434,
+      "pass_yield": 0.05873015873015873,
+      "pass_recall": 0.28346456692913385,
+      "review_rate": 0.13333333333333333,
+      "macro_f1": 0.45990116092874445,
+      "n": 630,
+      "confusion_matrix": [
+        [
+          36,
+          48,
+          43
+        ],
+        [
+          1,
+          31,
+          173
+        ],
+        [
+          0,
+          5,
+          293
+        ]
+      ],
+      "confusion_matrix_labels": [
+        "Pass",
+        "Review",
+        "Fail"
+      ]
+    },
+    "delta_false_pass_rate": -0.010067114093959731,
+    "delta_macro_f1": 0.21873966605822892
+  }
+}

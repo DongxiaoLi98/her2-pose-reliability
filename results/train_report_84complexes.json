@@ -1,0 +1,162 @@
+{
+  "selected_model": "logistic_regression",
+  "environment": {
+    "python": "3.12.7",
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "scikit_learn": "1.9.0",
+    "seed": 0
+  },
+  "selection_rule": "lowest WORST-FOLD cross-validated false_pass_rate, macro_f1 as tie-break",
+  "cv": "GroupKFold by structure_id",
+  "n_splits": 5,
+  "n_train_rows": 1810,
+  "n_train_structures": 63,
+  "rule_baseline_cv": {
+    "false_pass_rate": 0.0009671179883945841,
+    "false_fail_rate": 0.2626582278481013,
+    "pass_yield": 0.06022099447513812,
+    "pass_recall": 0.33860759493670883,
+    "review_rate": 0.10386740331491713,
+    "macro_f1": 0.47620155456502716,
+    "n": 1810,
+    "confusion_matrix": [
+      [
+        107,
+        126,
+        83
+      ],
+      [
+        1,
+        42,
+        417
+      ],
+      [
+        1,
+        20,
+        1013
+      ]
+    ],
+    "confusion_matrix_labels": [
+      "Pass",
+      "Review",
+      "Fail"
+    ]
+  },
+  "model_cv": {
+    "logistic_regression": {
+      "false_pass_rate": 0.014506769825918761,
+      "false_fail_rate": 0.04430379746835443,
+      "pass_yield": 0.15138121546961325,
+      "pass_recall": 0.740506329113924,
+      "review_rate": 0.27679558011049726,
+      "macro_f1": 0.6929873808988862,
+      "n": 1810,
+      "confusion_matrix": [
+        [
+          234,
+          68,
+          14
+        ],
+        [
+          25,
+          236,
+          199
+        ],
+        [
+          15,
+          197,
+          822
+        ]
+      ],
+      "confusion_matrix_labels": [
+        "Pass",
+        "Review",
+        "Fail"
+      ],
+      "brier": 0.37669897750838455,
+      "pass_cut": 0.5600000000000003,
+      "fail_cut": 0.5499999999999999,
+      "oof_false_pass_rate": 0.014506769825918761,
+      "oof_worst_fold_false_pass_rate": 0.024,
+      "oof_macro_f1": 0.6929873808988862
+    },
+    "svm": {
+      "false_pass_rate": 0.01644100580270793,
+      "false_fail_rate": 0.08227848101265822,
+      "pass_yield": 0.15248618784530388,
+      "pass_recall": 0.7151898734177216,
+      "review_rate": 0.23867403314917127,
+      "macro_f1": 0.6647246329314148,
+      "n": 1810,
+      "confusion_matrix": [
+        [
+          226,
+          64,
+          26
+        ],
+        [
+          33,
+          196,
+          231
+        ],
+        [
+          17,
+          172,
+          845
+        ]
+      ],
+      "confusion_matrix_labels": [
+        "Pass",
+        "Review",
+        "Fail"
+      ],
+      "brier": 0.41805302931002203,
+      "pass_cut": 0.32,
+      "fail_cut": 0.7,
+      "oof_false_pass_rate": 0.01644100580270793,
+      "oof_worst_fold_false_pass_rate": 0.02702702702702703,
+      "oof_macro_f1": 0.6647246329314148
+    },
+    "gradient_boosting": {
+      "false_pass_rate": 0.014506769825918761,
+      "false_fail_rate": 0.015822784810126583,
+      "pass_yield": 0.15303867403314916,
+      "pass_recall": 0.7183544303797469,
+      "review_rate": 0.3154696132596685,
+      "macro_f1": 0.6701989639440624,
+      "n": 1810,
+      "confusion_matrix": [
+        [
+          227,
+          84,
+          5
+        ],
+        [
+          35,
+          242,
+          183
+        ],
+        [
+          15,
+          245,
+          774
+        ]
+      ],
+      "confusion_matrix_labels": [
+        "Pass",
+        "Review",
+        "Fail"
+      ],
+      "brier": 0.40491828135714486,
+      "pass_cut": 0.6800000000000004,
+      "fail_cut": 0.5999999999999999,
+      "oof_false_pass_rate": 0.014506769825918761,
+      "oof_worst_fold_false_pass_rate": 0.043243243243243246,
+      "oof_macro_f1": 0.6701989639440624
+    }
+  },
+  "locked_pass_cut": 0.5600000000000003,
+  "locked_fail_cut": 0.5499999999999999,
+  "model_uri": "artifacts/local_bench/model.joblib"
+}
