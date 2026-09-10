@@ -1,4 +1,4 @@
-"""SageMaker Pipeline built from ProcessingSteps.
+"""SageMaker Pipeline built from ProcessingSteps (SDK v3 shapes).
 
 WHY A SECOND PIPELINE FILE
 --------------------------
@@ -11,55 +11,106 @@ The step logic is identical -- both files call the same functions in src/. The
 difference is only which SageMaker job type executes them, which is exactly the
 point of keeping the step functions free of any SageMaker imports.
 
+SDK v3 note: ProcessingInput/Output are now thin wrappers around the API shapes
+and no longer auto-upload local directories, so this file uploads src/, config/
+and the entry script to S3 itself before wiring them in.
+
     python -m pipeline.build_pipeline_processing \
         --bucket YOUR-BUCKET --role <execution-role-arn> \
-        --data s3://YOUR-BUCKET/her2/pose_contract_table.csv
+        --data s3://YOUR-BUCKET/her2/pose_contract_table.csv --start
 """
 from __future__ import annotations
 
 import argparse
+import os
+from pathlib import Path
 from time import gmtime, strftime
 
+import boto3
 from sagemaker.core.image_uris import retrieve
-from sagemaker.core.processing import ProcessingInput, ProcessingOutput, ScriptProcessor
+from sagemaker.core.processing import (
+    ProcessingInput,
+    ProcessingOutput,
+    ProcessingS3Input,
+    ScriptProcessor,
+)
+from sagemaker.core.shapes.shapes import ProcessingS3Output
+from sagemaker.core.workflow.conditions import ConditionLessThanOrEqualTo
 from sagemaker.core.workflow.functions import JsonGet
 from sagemaker.core.workflow.parameters import ParameterFloat, ParameterString
 from sagemaker.core.workflow.pipeline_context import PipelineSession
 from sagemaker.core.workflow.properties import PropertyFile
 from sagemaker.mlops.workflow.condition_step import ConditionStep
-from sagemaker.mlops.workflow.conditions import ConditionLessThanOrEqualTo
 from sagemaker.mlops.workflow.fail_step import FailStep
 from sagemaker.mlops.workflow.pipeline import Pipeline
 from sagemaker.mlops.workflow.steps import ProcessingStep
 
 BASE = "/opt/ml/processing"
-ENTRY = "pipeline/entry/run_step.py"
+ENTRY_LOCAL = "pipeline/entry/run_step.py"
 
 
-def _processor(session, role, instance_type, region):
-    return ScriptProcessor(
-        image_uri=retrieve("sklearn", region, version="1.2-1", instance_type="ml.t3.medium"),
-        command=["python3"],
-        instance_type=instance_type,
-        instance_count=1,
-        base_job_name="her2-pose",
-        role=role,
-        sagemaker_session=session,
+# --------------------------------------------------------------------------- #
+# S3 staging
+# --------------------------------------------------------------------------- #
+def _upload_dir(bucket: str, key_prefix: str, local_dir: str) -> str:
+    """Upload a directory, skipping caches. Returns its s3:// prefix."""
+    s3 = boto3.client("s3")
+    root = Path(local_dir)
+    n = 0
+    for path in root.rglob("*"):
+        if not path.is_file() or "__pycache__" in path.parts or path.suffix == ".pyc":
+            continue
+        s3.upload_file(str(path), bucket, f"{key_prefix}/{path.relative_to(root).as_posix()}")
+        n += 1
+    print(f"  {n:3} files  {local_dir} -> s3://{bucket}/{key_prefix}")
+    return f"s3://{bucket}/{key_prefix}"
+
+
+def _upload_file(bucket: str, key: str, local_path: str) -> str:
+    boto3.client("s3").upload_file(local_path, bucket, key)
+    print(f"    1 file  {local_path} -> s3://{bucket}/{key}")
+    return f"s3://{bucket}/{key}"
+
+
+# --------------------------------------------------------------------------- #
+# input / output builders
+# --------------------------------------------------------------------------- #
+def _s3_in(name: str, s3_uri, local_path: str) -> ProcessingInput:
+    return ProcessingInput(
+        input_name=name,
+        s3_input=ProcessingS3Input(
+            s3_uri=s3_uri,
+            s3_data_type="S3Prefix",
+            local_path=local_path,
+            s3_input_mode="File",
+            s3_data_distribution_type="FullyReplicated",
+        ),
     )
 
 
-def _code_inputs():
-    """src/ and config/ travel with every step, so any step can be re-run alone."""
-    return [
-        ProcessingInput(source="src", destination=f"{BASE}/input/code/src", input_name="src"),
-        ProcessingInput(source="config", destination=f"{BASE}/input/code/config", input_name="config"),
-    ]
+def _s3_out(name: str, s3_uri: str) -> ProcessingOutput:
+    return ProcessingOutput(
+        output_name=name,
+        s3_output=ProcessingS3Output(
+            s3_uri=s3_uri,
+            local_path=f"{BASE}/output",
+            s3_upload_mode="EndOfJob",
+        ),
+    )
 
 
+# --------------------------------------------------------------------------- #
 def build(bucket: str, role: str, data_uri: str, region: str = "us-east-1",
           prefix: str = "her2-pose-reliability"):
     stamp = strftime("%d-%H-%M-%S", gmtime())
-    out_root = f"s3://{bucket}/{prefix}/{stamp}"
+    run_prefix = f"{prefix}/{stamp}"
+    out_root = f"s3://{bucket}/{run_prefix}"
+
+    print("staging code to S3:")
+    src_uri = _upload_dir(bucket, f"{run_prefix}/code/src", "src")
+    cfg_uri = _upload_dir(bucket, f"{run_prefix}/code/config", "config")
+    entry_uri = _upload_file(bucket, f"{run_prefix}/code/run_step.py", ENTRY_LOCAL)
+
     session = PipelineSession()
 
     p_data = ParameterString(name="InputDataUri", default_value=data_uri)
@@ -68,20 +119,32 @@ def build(bucket: str, role: str, data_uri: str, region: str = "us-east-1",
     p_max_fpr = ParameterFloat(name="MaxFalsePassRate", default_value=0.15)
     p_instance = ParameterString(name="InstanceType", default_value="ml.t3.medium")
 
-    proc = _processor(session, role, p_instance, region)
+    proc = ScriptProcessor(
+        image_uri=retrieve("sklearn", region, version="1.2-1", instance_type="ml.t3.medium"),
+        command=["python3"],
+        instance_type=p_instance,
+        instance_count=1,
+        base_job_name="her2-pose",
+        role=role,
+        sagemaker_session=session,
+    )
+
+    def code_inputs():
+        # src/ and config/ travel with every step, so any step can be re-run alone
+        return [
+            _s3_in("src", src_uri, f"{BASE}/input/code/src"),
+            _s3_in("config", cfg_uri, f"{BASE}/input/code/config"),
+        ]
 
     # ---- 1. preprocess ----------------------------------------------------
     pre_out = f"{out_root}/preprocess"
     s_pre = ProcessingStep(
         name="preprocess",
         step_args=proc.run(
-            code=ENTRY,
+            code=entry_uri,
             arguments=["--step", "preprocess"],
-            inputs=_code_inputs() + [
-                ProcessingInput(source=p_data, destination=f"{BASE}/input/data", input_name="data"),
-            ],
-            outputs=[ProcessingOutput(output_name="preprocess", source=f"{BASE}/output",
-                                      destination=pre_out)],
+            inputs=code_inputs() + [_s3_in("data", p_data, f"{BASE}/input/data")],
+            outputs=[_s3_out("preprocess", pre_out)],
         ),
     )
 
@@ -90,13 +153,10 @@ def build(bucket: str, role: str, data_uri: str, region: str = "us-east-1",
     s_train = ProcessingStep(
         name="train",
         step_args=proc.run(
-            code=ENTRY,
+            code=entry_uri,
             arguments=["--step", "train"],
-            inputs=_code_inputs() + [
-                ProcessingInput(source=pre_out, destination=f"{BASE}/input/prev", input_name="prev"),
-            ],
-            outputs=[ProcessingOutput(output_name="train", source=f"{BASE}/output",
-                                      destination=train_out)],
+            inputs=code_inputs() + [_s3_in("prev", pre_out, f"{BASE}/input/prev")],
+            outputs=[_s3_out("train", train_out)],
         ),
         depends_on=[s_pre],
     )
@@ -108,14 +168,13 @@ def build(bucket: str, role: str, data_uri: str, region: str = "us-east-1",
     s_eval = ProcessingStep(
         name="evaluate",
         step_args=proc.run(
-            code=ENTRY,
+            code=entry_uri,
             arguments=["--step", "evaluate"],
-            inputs=_code_inputs() + [
-                ProcessingInput(source=pre_out, destination=f"{BASE}/input/prev", input_name="prev"),
-                ProcessingInput(source=train_out, destination=f"{BASE}/input/prev2", input_name="prev2"),
+            inputs=code_inputs() + [
+                _s3_in("prev", pre_out, f"{BASE}/input/prev"),
+                _s3_in("prev2", train_out, f"{BASE}/input/prev2"),
             ],
-            outputs=[ProcessingOutput(output_name="evaluate", source=f"{BASE}/output",
-                                      destination=eval_out)],
+            outputs=[_s3_out("evaluate", eval_out)],
         ),
         property_files=[eval_report],
         depends_on=[s_train],
@@ -125,17 +184,14 @@ def build(bucket: str, role: str, data_uri: str, region: str = "us-east-1",
     s_register = ProcessingStep(
         name="register",
         step_args=proc.run(
-            code=ENTRY,
+            code=entry_uri,
             arguments=[
                 "--step", "register",
                 "--model-package-group-name", p_group,
                 "--approval-status", p_approval,
             ],
-            inputs=_code_inputs() + [
-                ProcessingInput(source=eval_out, destination=f"{BASE}/input/prev", input_name="prev"),
-            ],
-            outputs=[ProcessingOutput(output_name="register", source=f"{BASE}/output",
-                                      destination=f"{out_root}/register")],
+            inputs=code_inputs() + [_s3_in("prev", eval_out, f"{BASE}/input/prev")],
+            outputs=[_s3_out("register", f"{out_root}/register")],
         ),
     )
 
@@ -177,6 +233,9 @@ def main() -> None:  # pragma: no cover
     ap.add_argument("--prefix", default="her2-pose-reliability")
     ap.add_argument("--start", action="store_true")
     a = ap.parse_args()
+
+    if not os.path.exists(ENTRY_LOCAL):
+        raise SystemExit(f"run this from the repo root ({ENTRY_LOCAL} not found)")
 
     pipe = build(a.bucket, a.role, a.data, a.region, a.prefix)
     pipe.upsert(role_arn=a.role)
