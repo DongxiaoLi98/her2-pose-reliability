@@ -46,7 +46,7 @@ def build(bucket: str, prefix: str = "her2-pose-reliability", instance_type: str
     pipeline_name = f"her2-pose-reliability-{stamp}"
     output_prefix = f"s3://{bucket}/{prefix}/{stamp}"
 
-    p_input = ParameterString(name="InputDataUri", default_value="")           # "" -> fixture generator
+    p_input = ParameterString(name="InputDataUri", default_value="")  # s3:// contract table
     p_group = ParameterString(name="ModelPackageGroupName", default_value=prefix)
     p_approval = ParameterString(name="ModelApprovalStatus", default_value="PendingManualApproval")
     p_max_fpr = ParameterFloat(name="MaxFalsePassRate", default_value=0.15)
@@ -55,6 +55,8 @@ def build(bucket: str, prefix: str = "her2-pose-reliability", instance_type: str
     s_pre = step(preprocess, name="preprocess", instance_type=p_instance)(
         output_prefix=output_prefix,
         input_uri=p_input,
+        source="table",          # a contract-form table produced by
+                                 # scripts/export_contract_table.py
     )
     s_train = step(train, name="train", instance_type=p_instance)(
         train_uri=s_pre["train_uri"],
